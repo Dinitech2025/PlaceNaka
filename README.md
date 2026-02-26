@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PlaceNaka 🎫
 
-## Getting Started
+Application web mobile de réservation de places pour événements, similaire à TicketPlace.io.
 
-First, run the development server:
+## 🌟 Fonctionnalités
+
+- **Gestion d'événements** : Création et gestion d'événements par les organisateurs
+- **Plans de lieux interactifs** : Dessin de plans avec tables, chaises et zones
+- **Réservation de places** : Sélection visuelle de places sur une carte interactive
+- **Système de paiement** : Intégration Stripe pour les paiements
+- **Commission automatique** : Calcul et répartition des commissions (organisateur + plateforme)
+- **Gestion multi-rôles** : Clients, Organisateurs, Administrateurs
+
+## 🛠️ Technologies
+
+- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+- **Backend**: API Routes Next.js, Prisma ORM
+- **Base de données**: PostgreSQL
+- **Stockage**: MinIO (S3-compatible)
+- **Cartes**: React Leaflet
+- **Paiement**: Stripe
+- **Authentification**: NextAuth.js
+
+## 🚀 Installation
+
+### Prérequis
+
+- Node.js 20+
+- Docker & Docker Compose
+- PostgreSQL (ou via Docker)
+
+### Développement local
 
 ```bash
+# Installer les dépendances
+npm install
+
+# Configurer l'environnement
+cp .env.example .env
+# Modifier .env avec vos configurations
+
+# Démarrer PostgreSQL et MinIO
+docker compose up -d
+
+# Générer le client Prisma
+npx prisma generate
+
+# Créer les migrations
+npx prisma migrate dev
+
+# Lancer le serveur de développement
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+L'application sera accessible sur [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📊 Structure de la base de données
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Users** : Utilisateurs (clients, organisateurs, admins)
+- **Venues** : Lieux/venues avec plans interactifs
+- **Events** : Événements organisés
+- **Tickets** : Places disponibles avec positions
+- **Reservations** : Réservations de places
+- **Payments** : Transactions de paiement avec commission
 
-## Learn More
+## 🗺️ Fonctionnalités principales
 
-To learn more about Next.js, take a look at the following resources:
+### Pour les Organisateurs
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Créer et gérer des événements
+- Dessiner des plans de lieux interactifs
+- Ajouter tables, chaises et zones
+- Suivre les réservations et revenus
+- Recevoir les paiements (moins commission)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Pour les Clients
 
-## Deploy on Vercel
+- Parcourir les événements disponibles
+- Voir les plans de lieux interactifs
+- Réserver des places visuellement
+- Payer en ligne
+- Gérer ses réservations
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Pour la Plateforme
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Commission automatique sur chaque transaction
+- Gestion des paiements
+- Statistiques et rapports
+
+## 🔐 Variables d'environnement
+
+Voir `.env.example` pour la liste complète des variables nécessaires.
+
+## 📦 Déploiement
+
+Voir `docker-compose.yml` pour le déploiement avec Docker.
+
+## 📄 Licence
+
+Tous droits réservés.
