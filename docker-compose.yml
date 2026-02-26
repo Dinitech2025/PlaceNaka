@@ -1,0 +1,66 @@
+services:
+  # ─── Base de données PostgreSQL ──────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: placenaka-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-placenaka}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-placenaka_secure_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-placenaka}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Port différent pour éviter conflit avec bnk2026
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      - placenaka
+
+  # ─── Stockage d'images MinIO ─────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: placenaka-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-placenakaadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-placenaka_minio_pass}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9002:9000"   # API S3 (port différent)
+      - "9003:9001"   # Console web MinIO (port différent)
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    networks:
+      - placenaka
+
+  # ─── Création automatique du bucket MinIO ────────────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: placenaka-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+        sleep 5;
+        mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY:-placenakaadmin} ${MINIO_SECRET_KEY:-placenaka_minio_pass};
+        mc mb --ignore-existing local/placenaka;
+        mc anonymous set public local/placenaka;
+        exit 0;
+      "
+    networks:
+      - placenaka
+
+volumes:
+  postgres_data:
+  minio_data:
+
+networks:
+  placenaka:
+    driver: bridge
