@@ -57,6 +57,41 @@ services:
     networks:
       - placenaka
 
+  # ─── Application Next.js ─────────────────────────────────────────────────
+  app:
+    image: ${DOCKER_IMAGE:-ghcr.io/dinitech2025/placenaka:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: placenaka-app
+    restart: unless-stopped
+    ports:
+      - "3001:3000"  # Port différent pour éviter conflit avec bnk2026
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-placenaka}:${POSTGRES_PASSWORD:-placenaka_secure_pass}@db:5432/${POSTGRES_DB:-placenaka}?schema=public
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_URL: http://${RASPBERRY_IP:-100.70.249.11}:9002
+      NEXT_TELEMETRY_DISABLED: 1
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-placenakaadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-placenaka_minio_pass}
+      MINIO_BUCKET: placenaka
+      MINIO_REGION: us-east-1
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-changez-ce-secret}
+      NEXTAUTH_URL: http://${RASPBERRY_IP:-100.70.249.11}:3001
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      DEFAULT_COMMISSION_RATE: ${DEFAULT_COMMISSION_RATE:-0.10}
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    depends_on:
+      - db
+      - minio
+    networks:
+      - placenaka
+
 volumes:
   postgres_data:
   minio_data:
