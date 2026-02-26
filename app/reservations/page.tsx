@@ -28,7 +28,11 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   CANCELLED: { label: 'Annulé', color: 'text-red-300 bg-red-500/20 border-red-500/30' },
 }
 
-export default async function ReservationsPage() {
+export default async function ReservationsPage({
+  searchParams,
+}: {
+  searchParams: { success?: string }
+}) {
   const session = await getServerSession(authOptions)
   if (!session) redirect('/login')
 
@@ -36,7 +40,17 @@ export default async function ReservationsPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold text-white mb-8">Mes billets</h1>
+      <h1 className="text-3xl font-bold text-white mb-6">Mes billets</h1>
+
+      {searchParams.success && (
+        <div className="mb-6 bg-green-500/20 border border-green-500/40 text-green-300 rounded-2xl p-4 flex items-center gap-3">
+          <span className="text-2xl">🎉</span>
+          <div>
+            <p className="font-semibold">Paiement confirmé !</p>
+            <p className="text-sm text-green-400">Votre réservation est confirmée. Bon événement !</p>
+          </div>
+        </div>
+      )}
 
       {reservations.length === 0 ? (
         <div className="text-center py-20 text-gray-500">

@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import Stripe from 'stripe'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-02-25.clover' })
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -18,7 +15,6 @@ export async function POST(req: NextRequest) {
       include: {
         ticket: { include: { event: true } },
         payment: true,
-        user: true,
       },
     })
 
@@ -30,34 +26,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Déjà payé' }, { status: 400 })
     }
 
-    const checkoutSession = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      mode: 'payment',
-      customer_email: session.user.email,
-      line_items: [
-        {
-          price_data: {
-            currency: 'eur',
-            unit_amount: reservation.ticket.price,
-            product_data: {
-              name: `${reservation.ticket.name} - ${reservation.ticket.event.title}`,
-              description: `${reservation.quantity} place(s)`,
-            },
-          },
-          quantity: reservation.quantity,
-        },
-      ],
-      metadata: {
-        reservationId: reservation.id,
-        paymentId: reservation.payment?.id || '',
-      },
-      success_url: `${process.env.NEXTAUTH_URL}/reservations/${reservation.id}?success=1`,
-      cancel_url: `${process.env.NEXTAUTH_URL}/events/${reservation.ticket.event.id}`,
-    })
-
-    return NextResponse.json({ url: checkoutSession.url })
+    // Mode test : rediriger vers la page de paiement simulé
+    const testUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/payments/test?reservationId=${reservationId}`
+    return NextResponse.json({ url: testUrl })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ error: 'Erreur paiement' }, { status: 500 })
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
