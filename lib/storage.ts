@@ -18,11 +18,11 @@ const PUBLIC_URL = process.env.MINIO_PUBLIC_URL || 'http://100.70.249.11:9000'
 
 export async function uploadImage(file: File, folder: string = 'images'): Promise<string> {
   const bytes = await file.arrayBuffer()
-  let buffer = Buffer.from(bytes)
+  const rawBuffer = Buffer.from(new Uint8Array(bytes))
 
-  // Optimiser l'image avec sharp
+  let uploadBuffer: Buffer | Uint8Array = rawBuffer
   if (file.type.startsWith('image/')) {
-    buffer = await sharp(buffer)
+    uploadBuffer = await sharp(rawBuffer)
       .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85 })
       .toBuffer()
@@ -34,7 +34,7 @@ export async function uploadImage(file: File, folder: string = 'images'): Promis
   await s3Client.send(new PutObjectCommand({
     Bucket: BUCKET,
     Key: key,
-    Body: buffer,
+    Body: uploadBuffer,
     ContentType: file.type.startsWith('image/') ? 'image/webp' : file.type,
   }))
 

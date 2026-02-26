@@ -4,27 +4,23 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-// Utilisateurs (Organisateurs et Clients)
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String?
-  role          UserRole  @default(CLIENT)
-  phone         String?
-  avatar        String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  // Relations
-  organizedEvents Event[]        @relation("Organizer")
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  role      UserRole @default(CLIENT)
+  phone     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizedEvents Event[]       @relation("Organizer")
+  venues          Venue[]       @relation("OrganizerVenues")
   reservations    Reservation[]
-  payments        Payment[]
-  venues          Venue[]
-  
+
   @@index([email])
   @@index([role])
 }
@@ -35,54 +31,45 @@ enum UserRole {
   ADMIN
 }
 
-// Lieux/Venues
 model Venue {
   id          String   @id @default(cuid())
   name        String
   address     String
   city        String
-  country     String
-  latitude    Float?
-  longitude   Float?
+  country     String   @default("FR")
   description String?
-  image       String?
+  images      String[]
   capacity    Int      @default(0)
-  layout      Json?    // Plan du lieu (tables, chaises, zones)
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  layout      Json?
+  organizerId String
+  organizer   User     @relation("OrganizerVenues", fields: [organizerId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  // Relations
-  events      Event[]
-  
-  @@index([ownerId])
+
+  events Event[]
+
+  @@index([organizerId])
+  @@index([city])
 }
 
-// Événements
 model Event {
-  id            String        @id @default(cuid())
-  title         String
-  description   String?
-  image         String?
-  startDate     DateTime
-  endDate       DateTime
-  venueId       String
-  venue         Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  organizerId   String
-  organizer     User         @relation("Organizer", fields: [organizerId], references: [id], onDelete: Cascade)
-  status        EventStatus  @default(DRAFT)
-  ticketPrice   Float        @default(0)
-  commissionRate Float       @default(0.10) // 10% de commission par défaut
-  totalRevenue  Float        @default(0)
-  platformFee   Float        @default(0) // Commission totale collectée
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  
-  // Relations
-  reservations  Reservation[]
-  tickets       Ticket[]
-  
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  coverImage  String?
+  startDate   DateTime
+  endDate     DateTime
+  status      EventStatus @default(DRAFT)
+  venueId     String
+  venue       Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  organizerId String
+  organizer   User        @relation("Organizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  tickets      Ticket[]
+  reservations Reservation[]
+
   @@index([organizerId])
   @@index([venueId])
   @@index([status])
@@ -97,59 +84,46 @@ enum EventStatus {
   CANCELLED
 }
 
-// Places/Tickets disponibles
+// Catégorie de billet (ex: VIP, Standard, Carré Or)
 model Ticket {
-  id          String   @id @default(cuid())
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  section     String?  // Zone (ex: "VIP", "Standard")
-  row         String?  // Rangée
-  seat        String?  // Numéro de siège
-  positionX   Float?   // Position X sur le plan
-  positionY   Float?   // Position Y sur le plan
-  price       Float    @default(0) // Prix spécifique pour cette place
-  status      TicketStatus @default(AVAILABLE)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  reservation Reservation?
-  
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name      String
+  price     Int      @default(0) // en centimes
+  quantity  Int      @default(0)
+  available Int      @default(0)
+  posX      Float?
+  posY      Float?
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations Reservation[]
+
   @@index([eventId])
-  @@index([status])
-  @@unique([eventId, row, seat])
 }
 
-enum TicketStatus {
-  AVAILABLE
-  RESERVED
-  SOLD
-  BLOCKED
-}
-
-// Réservations
 model Reservation {
-  id          String   @id @default(cuid())
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ticketId    String
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  status      ReservationStatus @default(PENDING)
-  totalAmount Float
-  commission  Float    @default(0) // Commission sur cette réservation
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  expiresAt   DateTime? // Expiration pour les réservations en attente
-  
-  // Relations
-  payment     Payment?
-  
-  @@index([eventId])
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ticketId   String
+  ticket     Ticket            @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  eventId    String
+  event      Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  quantity   Int               @default(1)
+  totalPrice Int               @default(0) // en centimes
+  status     ReservationStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  payment Payment?
+
   @@index([userId])
+  @@index([ticketId])
+  @@index([eventId])
   @@index([status])
-  @@index([expiresAt])
 }
 
 enum ReservationStatus {
@@ -159,25 +133,20 @@ enum ReservationStatus {
   EXPIRED
 }
 
-// Paiements
 model Payment {
-  id            String        @id @default(cuid())
-  reservationId String        @unique
-  reservation   Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  amount        Float
-  commission    Float         @default(0)
-  organizerAmount Float       @default(0) // Montant reçu par l'organisateur
-  platformAmount Float        @default(0) // Montant commission plateforme
-  status        PaymentStatus @default(PENDING)
-  paymentMethod String?       // "stripe", "paypal", etc.
-  transactionId String?       // ID transaction externe
-  paidAt        DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
-  @@index([userId])
+  id              String        @id @default(cuid())
+  reservationId   String        @unique
+  reservation     Reservation   @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  amount          Int           @default(0) // en centimes
+  commission      Int           @default(0)
+  organizerAmount Int           @default(0)
+  currency        String        @default("EUR")
+  status          PaymentStatus @default(PENDING)
+  stripePaymentId String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
   @@index([status])
   @@index([paidAt])
 }
